@@ -1,0 +1,223 @@
+﻿@model List<Champion>
+
+<div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">            
+            <a href="/"><div class="navbar-brand">LolDraft</div></a>
+        </div>
+        <span id="undo" class="glyphicon glyphicon-repeat icon-flipped navbar-right navbar-brand header-bar-icon" aria-hidden="true"></span>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div id="blue-selections" class="col-lg-3 col-md-3 col-xs-6 team-container">
+            <div class="blue-team-name">Blue Team</div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="bans">
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6 col-xs-12 champ-container">
+            @foreach (var champion in Model)
+            {
+                <div class="thumb champ-tile" data-champ-id="@champion.id">
+                    <a class="thumbnail champ-anchor" href="#">
+                        <img class="img-responsive champ-img" src="@champion.thumbnailUrl" alt="">
+                    </a>
+                </div>
+            }
+
+        </div>
+        <div id="red-selections" class="col-lg-3 col-md-3 col-xs-6 team-container">
+            <div class="red-team-name">Red Team</div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="big-champ-tile">
+                <a class="thumbnail champ-anchor" href="#"><img></a>
+            </div>
+            <div class="bans">
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+                <div class="thumb champ-tile">
+                    <a class="thumbnail champ-anchor" href="#"><img></a>
+                </div>
+            </div>
+        </div>
+</div>
+<hr/>
+<div id="turn-box">
+
+</div>
+
+@section scripts {
+    <script>
+        (function ($) {
+            $.QueryString = (function (a) {
+                if (a == "") return {};
+                var b = {};
+                for (var i = 0; i < a.length; ++i) {
+                    var p = a[i].split('=');
+                    if (p.length != 2) continue;
+                    b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+                }
+                return b;
+            })(window.location.search.substr(1).split('&'))
+        })(jQuery);
+
+        $(document).ready(() => {
+            var guid = $.QueryString['draftGuid'];
+            getDraft(guid);
+            setInterval(() => getDraft(guid), 500);
+
+            $('#undo').click(() => {
+                undo(guid);
+            });
+        });
+
+        function getDraft(guid) {
+            $.get('api/draft?draftGuid=' + guid)
+             .success((data) => {                 
+                 displayDraft(data);
+            })
+        }
+
+        function displayDraft(draft) {
+            console.log('Draft data: ', draft);
+            var guid = $.QueryString['draftGuid'];
+
+            var champList = $('.champ-container > .champ-tile');
+            champList.find('img').removeClass('unavailable-img');
+            champList.unbind('click');
+            champList.click((event) => {
+                var id = $(event.currentTarget).attr('data-champ-id');
+                select(guid, id, $(event.target), $(event.currentTarget));
+            });
+
+            var blue = $('#blue-selections');
+            var red = $('#red-selections');
+
+            displayBans(blue, draft.BlueTeam.Bans);
+            displayBans(red, draft.RedTeam.Bans);
+            displayPicks(blue, draft.BlueTeam.Picks);
+            displayPicks(red, draft.RedTeam.Picks);
+            
+            console.log('Turn:', draft.Turn);
+
+            switch(draft.Turn) {
+                case 0:
+                    $('#turn-box').text('Red Ban');
+                    $('#turn-box').css('color', 'red');
+                    $('#turn-box').css('border-color', 'red');
+                    break;
+                case 1:
+                    $('#turn-box').text('Red Pick');
+                    $('#turn-box').css('color', 'red');
+                    $('#turn-box').css('border-color', 'red');
+                    break;
+                case 2:
+                    $('#turn-box').text('Blue Ban');
+                    $('#turn-box').css('color', 'blue');
+                    $('#turn-box').css('border-color', 'blue');
+                    break;
+                case 3:
+                    $('#turn-box').text('Blue Pick');
+                    $('#turn-box').css('color', 'blue');
+                    $('#turn-box').css('border-color', 'blue');
+                    break;
+                case 4:
+                    $('#turn-box').text('Done!');
+                    $('#turn-box').css('color', 'green');
+                    $('#turn-box').css('border-color', 'green');
+                    break;
+            }
+        }
+
+        function displayBans(container, bans) {
+            for (var i = 0; i < 3; i++) {
+                var champ = bans[i];
+                var src = '';
+                if (champ) {
+                    disableChamp(champ.id);
+                    src = champ.thumbnailUrl;
+                }
+
+                container.find('.bans .champ-tile:eq(' + i + ') img').attr('src', src);
+            }
+        }
+
+        function displayPicks(container, picks) {
+            for (var i = 0; i < 5; i++) {
+                var champ = picks[i];
+                var src = '';
+                if (champ) {
+                    disableChamp(champ.id);
+                    src = champ.thumbnailUrl;
+                }
+
+                container.find('.big-champ-tile:eq(' + i + ') img').attr('src', src);
+            }
+        }
+
+        function undo(guid) {
+            $.ajax({
+                url: 'api/draft/undo?draftGuid=' + guid,
+                type: 'PUT'
+            })
+            .success((data) => {
+                displayDraft(data);
+            })
+        }
+
+        function select(guid, id, imgTarget, clickTarget) {
+            $.ajax({
+                url: 'api/draft/select?draftGuid=' + guid + '&championId=' + id,
+                type: 'PUT'
+            })
+            .success((data) => {
+                displayDraft(data);
+             })
+        }
+
+        function disableChamp(id) {
+            var champ = $('.champ-container > .champ-tile[data-champ-id=' + id + ']');
+            champ.find('img').addClass('unavailable-img');
+            champ.unbind('click');
+        }
+    </script>
+}

@@ -1,0 +1,22 @@
+﻿@model List<Draft>
+
+<div class="container">
+    <div class="row">
+        <div id="createDraftBtn" class="col-lg-6">
+            <button>Create New Draft</button>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script>
+    $('#createDraftBtn').click(() => {
+        $.get('api/draft/create')
+         .success((data) => {
+             console.log('Data received: ', data);
+             window.location.href = 'join?draftGuid=' + data.AdminKey;
+         })
+    });
+</script>
+}
+
